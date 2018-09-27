@@ -1,81 +1,96 @@
 import tensorflow as tf
+import os
+import numpy as np
 from machine_learning_models.utils import *
 
-class LogisticRegression:
 
-    def __init__(self):
-        input = tf.placeholder(tf.int32, [None, sensors])
-        target = tf.placeholder(tf.int32, [None, 4])
+def log_reg_model_fn(features, targets, mode, params):
 
+        # model definition - very simple in the case of logistic regression
+        logits = tf.layers.dense(features, units=params.target_size)
+        predictions = tf.nn.softmax(logits)
 
-    def make_config(self):
-        config = AttrDict()
-        config.input_size = 25 # todo change to actual input size
-        config.learning_rate = 0.001
-        config.training_epochs = 50
+        # Estimator creation - depending on what mode is called, we return the equivalent estimator eg. PREDICT, TRAIN
+        # or EVAL
 
-        return config
+        # PREDICT estimator creation
+        if mode == tf.estimator.ModeKeys.PREDICT:
+            return tf.estimator.EstimatorSpec(
+                mode=mode,
+                predictions={"predictions": predictions})
 
-    def log_reg_network(self, inputs, config):
-
-        W = tf.Variable(tf.zeros([config.input_size, 4]))
-        b = tf.Variable(tf.zeros([4]))
-
-        prediction = tf.nn.softmax(tf.matmul(inputs, W) + b)
-        return prediction
-
-    def define_graph(self, config, inputs, targets):
-        tf.reset_default_graph()
-
-        prediction = self.log_reg_network(config, inputs)
         # Cost function - Cross entropy / negative log likelihood
-        cost = tf.reduce_mean(-tf.reduce_sum(targets * tf.log(prediction), axis=1))
-        # Optimization - Adaptive momentum estimation  Adam
-        optimize = tf.train.AdamOptimizer(learning_rate).minimize(cost)
+        cost = tf.losses.softmax_cross_entropy(targets, logits)
+
+        # Set evaluation metrics
+        accuracy = tf.metrics.accuracy(labels=targets, predictions=predictions)
+        eval_metrics = {'accuracy' : accuracy}
+        tf.summary.scalar('accuracy', accuracy[1]) # Used for tensorboard
+
+        # EVAL estimator creation
+        if mode == tf.estimator.ModeKeys.EVAL:
+            return tf.estimator.EstimatorSpec(
+                mode=mode,
+                loss=cost,
+                eval_metric_ops=eval_metrics
+            )
+
+        # Optimization - Adaptive momentum estimation eg. Adam
+        optimizer = tf.train.AdamOptimizer(params.learning_rate)
+        train_operation = optimizer.minimize(cost, global_step=tf.train.get_global_step())
+
+        # TRAIN estimator creation
+        if mode == tf.estimator.ModeKeys.TRAIN:
+            return tf.estimator.EstimatorSpec(
+                mode=mode,
+                loss=cost,
+                eval_metric_ops=eval_metrics,
+                train_op=train_operation
+            )
+
+def main():
+
+    train_x = np.zeros(10, 10)
+    train_y = np.zeros(10)
+
+    eval_x = np.zeros(10, 10)
+    eval_y = np.zeros(10)
+
+
+    params = AttrDict()
+    params.input_size = 25  # todo change to actual input size
+    params.target_size = 4
+    params.learning_rate = 0.001
+    params.training_epochs = 50
+
+    # Create estimator model
+    nn = tf.estimator.Estimator(model_fn=log_reg_model_fn, params=params, model_dir=os.getcwd())
+
+    # Create training input
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x=train_x,
+        y=train_y,
+        num_epochs=None,
+        shuffle=True)
+
+    # Train model
+    nn.train(train_input_fn, steps=params.training_epochs)
+
+    # Create evaluate input
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x=eval_x,
+        y=eval_y,
+        num_epochs=1,
+        shuffle=False
+    )
+
+    # Evalaute model
+    evaluation = nn.evaluate(eval_input_fn)
+    print("Eval Cost: {}".format(evaluation['loss']))
+    print("Eval Accuracy: {}".format(evaluation['accuracy']))
+
 
 
 if __name__ == "__main__":
+    tf.app.run(main=main)
 
-    learning_rate = 0.01
-    sensors = 25
-    training_epochs = 100
-
-
-    prediction = tf.nn.softmax(tf.matmul(input, W) + b)
-    # Cost function - Cross entropy / negative log likelihood
-    cost = tf.reduce_mean(-tf.reduce_sum(target*tf.log(prediction), axis=1))
-    # Optimization - Adaptive momentum estimation  Adam
-    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
-
-    # Initialize the variables (i.e. assign their default value)
-    init = tf.global_variables_initializer()
-
-    # Start training
-    with tf.Session() as sess:
-
-        # Run the initializer
-        sess.run(init)
-
-        # Training cycle
-        for epoch in range(training_epochs):
-            avg_cost = 0.
-            total_batch = int(mnist.train.num_examples / batch_size)
-            # Loop over all batches
-            for i in range(total_batch):
-                batch_xs, batch_ys = mnist.train.next_batch(batch_size)
-                # Run optimization op (backprop) and cost op (to get loss value)
-                _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs,
-                                                              y: batch_ys})
-                # Compute average loss
-                avg_cost += c / total_batch
-            # Display logs per epoch step
-            if (epoch + 1) % display_step == 0:
-                print("Epoch:", '%04d' % (epoch + 1), "cost=", "{:.9f}".format(avg_cost))
-
-        print("Optimization Finished!")
-
-        # Test model
-        correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(target, 1))
-        # Calculate accuracy
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    #print("Accuracy:", accuracy.eval({x: mnist.test.images, y: mnist.test.labels}))
