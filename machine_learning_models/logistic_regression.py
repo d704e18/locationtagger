@@ -54,7 +54,7 @@ def main(unused_arg):
     path = os.getcwd()
     parent = '/'.join(path.split('/')[:-1])
 
-    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(parent+"/data/whole_week.pkl")
+    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(parent+"/data/whole_week_small.pkl")
 
     model_params = {'input_size' : train_x.shape[1],
                     'target_size' : train_y.shape[1],

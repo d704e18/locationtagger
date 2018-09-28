@@ -8,7 +8,7 @@ def main():
     path = os.getcwd()
     parent = '/'.join(path.split('/')[:-1])
 
-    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(parent+"/data/whole_week.pkl")
+    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(parent+"/data/whole_week_small.pkl")
 
     logreg = LogisticRegression(solver='lbfgs', multi_class='multinomial', class_weight='balanced',
                                 max_iter=100)
@@ -16,7 +16,7 @@ def main():
     # training
     logreg.fit(train_x, train_y.argmax(axis=1))
 
-    print("Validation score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
+    print("Train score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
     print("Validation score: {}".format(logreg.score(validation_x, validation_y.argmax(axis=1))))
     print("Test score: {}".format(logreg.score(test_x, test_y.argmax(axis=1))))
 

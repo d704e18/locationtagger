@@ -54,9 +54,8 @@ def load_data(file_path, normalize=True):
     return train_x, one_hot(train_y), validation_x, one_hot(validation_y), test_x, one_hot(test_y)
 
 
-def one_hot(y, num_classes=None):
-    if num_classes is None:
-        num_classes = np.unique(y).shape[0]
+def one_hot(y):
+    num_classes = np.unique(y).shape[0]
 
     return np.squeeze(np.eye(num_classes)[y.reshape(-1).astype(int)]).astype(np.int32)
 
