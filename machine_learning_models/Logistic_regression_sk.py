@@ -16,6 +16,7 @@ def main():
     # training
     logreg.fit(train_x, train_y.argmax(axis=1))
 
+    print("Validation score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
     print("Validation score: {}".format(logreg.score(validation_x, validation_y.argmax(axis=1))))
     print("Test score: {}".format(logreg.score(test_x, test_y.argmax(axis=1))))
 
