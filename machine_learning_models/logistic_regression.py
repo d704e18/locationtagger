@@ -1,5 +1,6 @@
-import tensorflow as tf
 import os
+
+import tensorflow as tf
 from machine_learning_models.utils import *
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -92,4 +93,3 @@ def main(unused_arg):
 
 if __name__ == "__main__":
     tf.app.run(main=main)
-
