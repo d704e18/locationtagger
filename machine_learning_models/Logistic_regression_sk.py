@@ -1,7 +1,9 @@
+import argparse
 import os
 
 from sklearn.linear_model import LogisticRegression
 
+from machine_learning_models.plotting import plot_learning_curve
 from machine_learning_models.utils import *
 
 
@@ -9,19 +11,25 @@ def main():
     path = os.getcwd()
     parent = os.path.dirname(path)
 
-    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(
-        os.path.join(parent, 'data', 'whole_week_small.pkl'))
+    x, y = load_data(os.path.join(parent, 'data', 'merged.pkl'))
 
-    logreg = LogisticRegression(solver='lbfgs', multi_class='multinomial', class_weight='balanced',
-                                max_iter=100)
+    logreg = LogisticRegression(solver='lbfgs', multi_class='multinomial', class_weight='balanced', max_iter=100)
 
     # training
-    logreg.fit(train_x, train_y.argmax(axis=1))
+    # Use n_jobs -1 to make use of all processors.
 
-    print("Train score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
-    print("Validation score: {}".format(logreg.score(validation_x, validation_y.argmax(axis=1))))
-    print("Test score: {}".format(logreg.score(test_x, test_y.argmax(axis=1))))
+    logreg.fit(x, y.argmax(axis=1))
+
+    #plt = plot_learning_curve(logreg, 'Logistic regression learning curve', x, y.argmax(axis=1), cv=5, n_jobs=None)
+    #plt.show()
+
+    test = logreg.predict(x)
+
+    print(test)
+    #print("Train score: {}".format(logreg.score(x, y.argmax(axis=1))))
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument()
     main()
