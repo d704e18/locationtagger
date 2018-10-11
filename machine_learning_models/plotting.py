@@ -1,11 +1,7 @@
 # http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
-import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-from sklearn.datasets import load_digits
+import numpy as np
 from sklearn.model_selection import learning_curve
-from sklearn.model_selection import ShuffleSplit
 
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,

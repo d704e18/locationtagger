@@ -1,7 +1,7 @@
 import os
 
 import tensorflow as tf
-from machine_learning_models.utils import *
+from machine_learning_models.utils import load_data_and_split
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -26,8 +26,8 @@ def log_reg_model_fn(features, labels, mode, params):
 
         # Set evaluation metrics
         accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions)
-        eval_metrics = {'accuracy' : accuracy}
-        tf.summary.scalar('accuracy', accuracy[1]) # Used for tensorboard
+        eval_metrics = {'accuracy': accuracy}
+        tf.summary.scalar('accuracy', accuracy[1])  # Used for tensorboard
 
         # EVAL estimator creation
         if mode == tf.estimator.ModeKeys.EVAL:
@@ -50,21 +50,23 @@ def log_reg_model_fn(features, labels, mode, params):
                 train_op=train_operation
             )
 
-def main(unused_arg):
 
+def main(unused_arg):
     path = os.getcwd()
     parent = '/'.join(path.split('/')[:-1])
 
-    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(parent+"/data/whole_week_small.pkl")
+    train_x, train_y, validation_x, validation_y, test_x, test_y = load_data_and_split(
+        parent+"/data/whole_week_small.pkl")
 
-    model_params = {'input_size' : train_x.shape[1],
-                    'target_size' : train_y.shape[1],
-                    'learning_rate' : 0.001,
-                    'training_epochs' : 10000
+    model_params = {'input_size': train_x.shape[1],
+                    'target_size': train_y.shape[1],
+                    'learning_rate': 0.001,
+                    'training_epochs': 10000
                     }
     i = 2
     # Create estimator model
-    nn = tf.estimator.Estimator(model_fn=log_reg_model_fn, params=model_params, model_dir="{}/trained_models/{}".format(parent, i))
+    nn = tf.estimator.Estimator(
+        model_fn=log_reg_model_fn, params=model_params, model_dir="{}/trained_models/{}".format(parent, i))
 
     # Create training input
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -88,7 +90,6 @@ def main(unused_arg):
     evaluation = nn.evaluate(eval_input_fn)
     print("Eval Cost: {}".format(evaluation['loss']))
     print("Eval Accuracy: {}".format(evaluation['accuracy']))
-
 
 
 if __name__ == "__main__":
