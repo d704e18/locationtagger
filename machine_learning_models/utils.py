@@ -24,7 +24,22 @@ class cd:
 
 
 def load_data(file_path, normalize=True):
+    data = pd.read_pickle(file_path)
 
+    print("Columns:\n {}".format(data.columns))
+    print("Data shape: {}\n".format(data.shape))
+
+    x = data.iloc[:, 0:-1].values.astype(np.float32)
+    y = data.iloc[:, -1:].values.astype(np.int32)
+
+    if normalize:
+        transformer = Normalizer()
+        x = transformer.fit_transform(x)
+
+    return x, one_hot(y)
+
+
+def load_data_and_split(file_path, normalize=True):
     data = pd.read_pickle(file_path)
 
     print("Columns:\n {}".format(data.columns))

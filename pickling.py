@@ -1,6 +1,6 @@
 import pandas
 
-#TODO: change paths
+# TODO: change paths
 BASEPATH = "CHANGE THIS"
 AF1_BASEPATH = BASEPATH + "data/af1/"
 PICKLE_BASEPATH = BASEPATH + "data/pickle/"
@@ -16,11 +16,13 @@ DAY7 = "20180912"
 
 af1_zones = pandas.read_pickle(AF1_ZONES_PATH)
 
+
 def filter_af1_data(data, filename):
     pandas.DataFrame.to_csv(
         data[data.SensorID.isin(af1_zones.ID)],
         AF1_BASEPATH + filename + ".csv"
     )
+
 
 data_from_day1 = pandas.read_pickle(PICKLE_BASEPATH + DAY1 + ".pkl")
 filter_af1_data(data_from_day1, DAY1)
