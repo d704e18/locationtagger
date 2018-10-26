@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import StandardScaler
 
 
 class AttrDict(dict):
@@ -38,7 +38,7 @@ def load_data(file_path, normalize=True, drop_device=True):
     x = data.iloc[:, 0:-1].values.astype(np.float32)
     y = data.iloc[:, -1:].values.astype(np.int32)
 
-    transformer = Normalizer()
+    transformer = StandardScaler()
     if normalize:
         x = transformer.fit_transform(x)
 
@@ -82,7 +82,7 @@ def load_data_and_split(file_path, normalize=True, drop_device=True):
     test_x = data[val_test_split:].iloc[:, 0:-1].values.astype(np.float32)
     test_y = data[val_test_split:].iloc[:, -1:].values.astype(np.int32)
 
-    transformer = Normalizer()
+    transformer = StandardScaler()
     if normalize:
         train_x = transformer.fit_transform(train_x)
         validation_x = transformer.transform(validation_x)
