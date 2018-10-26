@@ -25,7 +25,10 @@ def main(args):
     else:
         train_x, train_y, validation_x, validation_y, test_x, test_y, x_transformer = load_data_and_split(
             os.path.join(parent, 'data', args.training_data))
-        logreg.fit(train_x, train_y.argmax(axis=1))
+        if args.load_model:
+            logreg = joblib.load(args.load_model)
+        else:
+            logreg.fit(train_x, train_y.argmax(axis=1))
         print("Train score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
         print("Validation score: {}".format(logreg.score(validation_x, validation_y.argmax(axis=1))))
         print("Test score: {}".format(logreg.score(test_x, test_y.argmax(axis=1))))
@@ -56,7 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('--plot', action='store_true', help='plot accuracy per examples')
     parser.add_argument('--save_model', nargs='?', const='logreg_' + date.today().strftime('%Y%m%d'), type=str,
                         help='save the model to disk')
-    # Todo: Add argument to load an existing model.
+    parser.add_argument('--load_model', help='load a pre-trained model from disk')
     parser.add_argument('--predict', nargs='?', const=a_manual_device, type=int,
                         help='predict areas for a device id')
     parser.add_argument('--predict_proba', nargs='?', const=a_manual_device, type=int,
