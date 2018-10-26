@@ -92,7 +92,7 @@ def load_data_and_split(file_path, normalize=True, drop_device=True):
     print("Validation shape: {}".format(validation_x.shape))
     print("Test shape: {}".format(test_x.shape))
 
-    return train_x, one_hot(train_y), validation_x, one_hot(validation_y), test_x, one_hot(test_y), transformer
+    return train_x, train_y, validation_x, one_hot(validation_y), test_x, one_hot(test_y), transformer
 
 
 def one_hot(y):
