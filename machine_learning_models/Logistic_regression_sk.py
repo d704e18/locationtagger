@@ -5,7 +5,7 @@ from datetime import date
 
 import pandas as pd
 from sklearn.externals import joblib
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 
 from plotting import plot_learning_curve
 from utils import load_data, load_data_and_split, load_prediction_data
@@ -15,12 +15,12 @@ def main(args):
     path = os.getcwd()
     parent = os.path.dirname(path)
 
-    logreg = LogisticRegression(solver='lbfgs', multi_class='multinomial', class_weight='balanced', max_iter=100)
+    logreg = SGDClassifier(loss='log', shuffle=True, max_iter=100, penalty=None, class_weight='balanced')
     if args.plot:
         x, y, x_transformer = load_data(os.path.join(parent, 'data', args.training_data))
-        # Use n_jobs -1 to make use of all processors.
+        # Use n_jobs=-1 to make use of all processors.
         plt = plot_learning_curve(
-            logreg, 'Logistic regression: Accuracy / Training example', x, y.argmax(axis=1), cv=5, n_jobs=None)
+            logreg, 'Logistic regression: Accuracy / Training example', x, y.argmax(axis=1), cv=5, n_jobs=-1)
         plt.show()
     else:
         train_x, train_y, validation_x, validation_y, test_x, test_y, x_transformer = load_data_and_split(
@@ -29,27 +29,28 @@ def main(args):
             logreg = joblib.load(args.load_model)
         else:
             logreg.fit(train_x, train_y.argmax(axis=1))
-        print("Train score: {}".format(logreg.score(train_x, train_y.argmax(axis=1))))
-        print("Validation score: {}".format(logreg.score(validation_x, validation_y.argmax(axis=1))))
-        print("Test score: {}".format(logreg.score(test_x, test_y.argmax(axis=1))))
+        print('Train score: {}'.format(logreg.score(train_x, train_y.argmax(axis=1))))
+        print('Validation score: {}'.format(logreg.score(validation_x, validation_y.argmax(axis=1))))
+        print('Test score: {}'.format(logreg.score(test_x, test_y.argmax(axis=1))))
 
-        if args.predict:
+        if args.predict or args.predict_proba:
             predict_data, y, timestamps = load_prediction_data(args.training_data, args.predict, x_transformer)
-            predictions = logreg.predict(predict_data)
-            results = pd.DataFrame(data={'label': y, 'prediction': predictions}, index=timestamps)
-            print(results)
 
-        if args.predict_proba:
-            predict_data, y, timestamps = load_prediction_data(args.training_data, 4374864809416781228, x_transformer)
-            predictions = logreg.predict_proba(predict_data)
-            results = pd.DataFrame(data=predictions, index=timestamps)
-            print(results)
+            if args.predict:
+                predictions = logreg.predict(predict_data)
+                results = pd.DataFrame(data={'label': y, 'prediction': predictions}, index=timestamps)
+                print(results)
+
+            if args.predict_proba:
+                predictions = logreg.predict_proba(predict_data)
+                results = pd.DataFrame(data=predictions, index=timestamps)
+                print(results)
 
         if args.save_model:
             model_directory = os.path.join(parent, 'trained_models')
             if not os.path.exists(model_directory):
                 os.makedirs(model_directory)
-            joblib.dump(logreg, os.path.join(model_directory, args.save_model + '.pkl'))
+            joblib.dump(logreg, os.path.join(model_directory, args.save_model + '.joblib'))
 
 
 if __name__ == "__main__":
