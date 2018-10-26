@@ -1,11 +1,14 @@
 import os
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import Normalizer
+
 
 class AttrDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setattr__
+
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -20,9 +23,49 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def load_data(file_path, normalize=True):
+def load_data(file_path, normalize=True, drop_device=True):
+    if file_path.endswith('pkl'):
+        data = pd.read_pickle(file_path)
+    else:
+        data = pd.read_csv(file_path, parse_dates=True, dayfirst=False, index_col=0)
 
-    data = pd.read_pickle(file_path)
+    if drop_device and 'Device' in data.columns:
+        data = data.drop("Device", axis=1)
+
+    print("Columns:\n {}".format(data.columns))
+    print("Data shape: {}\n".format(data.shape))
+
+    x = data.iloc[:, 0:-1].values.astype(np.float32)
+    y = data.iloc[:, -1:].values.astype(np.int32)
+
+    transformer = Normalizer()
+    if normalize:
+        x = transformer.fit_transform(x)
+
+    return x, one_hot(y), transformer
+
+
+def load_prediction_data(file_path, device_id, transformer):
+    if file_path.endswith('pkl'):
+        data = pd.read_pickle(file_path)
+    else:
+        data = pd.read_csv(file_path, parse_dates=True, dayfirst=False, index_col=0)
+    data = data.loc[data['Device'] == device_id]
+    timestamps = data.index
+    x = data.iloc[:, 0:-2].values.astype(np.float32)
+    y = data.iloc[:, -1]
+
+    return transformer.transform(x), y, timestamps
+
+
+def load_data_and_split(file_path, normalize=True, drop_device=True):
+    if file_path.endswith('pkl'):
+        data = pd.read_pickle(file_path)
+    else:
+        data = pd.read_csv(file_path, parse_dates=True, dayfirst=False, index_col=0)
+
+    if drop_device and 'Device' in data.columns:
+        data = data.drop('Device', axis=1)
 
     print("Columns:\n {}".format(data.columns))
     print("Data shape: {}\n".format(data.shape))
@@ -39,8 +82,8 @@ def load_data(file_path, normalize=True):
     test_x = data[val_test_split:].iloc[:, 0:-1].values.astype(np.float32)
     test_y = data[val_test_split:].iloc[:, -1:].values.astype(np.int32)
 
+    transformer = Normalizer()
     if normalize:
-        transformer = Normalizer()
         train_x = transformer.fit_transform(train_x)
         validation_x = transformer.transform(validation_x)
         test_x = transformer.transform(test_x)
@@ -49,9 +92,7 @@ def load_data(file_path, normalize=True):
     print("Validation shape: {}".format(validation_x.shape))
     print("Test shape: {}".format(test_x.shape))
 
-
-
-    return train_x, one_hot(train_y), validation_x, one_hot(validation_y), test_x, one_hot(test_y)
+    return train_x, one_hot(train_y), validation_x, one_hot(validation_y), test_x, one_hot(test_y), transformer
 
 
 def one_hot(y):
