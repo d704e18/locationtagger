@@ -6,26 +6,35 @@ from datetime import date
 import numpy
 import pandas as pd
 from sklearn.externals import joblib
-from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import cross_validate
 
 from plotting import plot_learning_curve
-from utils import load_data, load_data_and_split, load_prediction_data, one_hot
+from utils import load_data, load_data_and_split, load_prediction_data, make_sgd_classifier, one_hot
 
 
 def main(args):
     path = os.getcwd()
     parent = os.path.dirname(path)
-
-    logreg = SGDClassifier(loss='log', shuffle=True, max_iter=100, penalty=None, class_weight='balanced')
+    k = 5
+    logreg = make_sgd_classifier()
     if args.plot:
         x, y, x_transformer = load_data(os.path.join(parent, 'data', args.training_data))
-        # Use n_jobs=-1 to make use of all processors.
+        # Use n_jobs=-1 to make use of all cores.
         plt = plot_learning_curve(
-            logreg, 'Logistic regression: Accuracy / Training example', x, y.argmax(axis=1), cv=5, n_jobs=-1)
+            logreg, 'Logistic regression: Accuracy / Training example', x, y.argmax(axis=1), cv=k, n_jobs=-1)
         plt.show()
+    elif args.test_learning_rate:
+        x, y, x_transformer = load_data(os.path.join(parent, 'data', args.training_data))
+        eta0s = [0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03]
+        for eta0 in eta0s:
+            logreg_eta = make_sgd_classifier(eta0=eta0)
+            results = cross_validate(logreg_eta, x, y.argmax(axis=1), cv=k, n_jobs=-1, return_train_score=True)
+            train_score = numpy.mean(results['train_score'])
+            test_score = numpy.mean(results['test_score'])
+            print(f'Eta0 {eta0}; Train score {train_score}; Test score {test_score}')
     else:
-        train_x, train_y_non_one_hot, validation_x, validation_y, test_x, test_y, x_transformer = load_data_and_split(
-            os.path.join(parent, 'data', args.training_data))
+        train_x, train_y_non_one_hot, validation_x, validation_y, x_transformer = load_data_and_split(
+            os.path.join(parent, 'data', args.training_data), k=k)
         train_y = one_hot(train_y_non_one_hot)
         if args.load_model:
             logreg = joblib.load(args.load_model)
@@ -33,7 +42,6 @@ def main(args):
             logreg.fit(train_x, train_y.argmax(axis=1))
         print('Train score: {}'.format(logreg.score(train_x, train_y.argmax(axis=1))))
         print('Validation score: {}'.format(logreg.score(validation_x, validation_y.argmax(axis=1))))
-        print('Test score: {}'.format(logreg.score(test_x, test_y.argmax(axis=1))))
 
         if args.predict or args.predict_proba:
             predict_data, y, timestamps = load_prediction_data(args.training_data, args.predict, x_transformer)
@@ -88,5 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--predict_proba', nargs='?', const=a_manual_device, type=int,
                         help='predict the probabilities for each area for a device id')
     parser.add_argument('--confidence', action='store_true', help='calculate confidence')
+    parser.add_argument('--test_learning_rate', action='store_true',
+                        help='train the model with different learning rates')
     args = parser.parse_args(sys.argv[1:])
     main(args)
