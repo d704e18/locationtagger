@@ -32,6 +32,15 @@ def main(args):
             train_score = numpy.mean(results['train_score'])
             test_score = numpy.mean(results['test_score'])
             print(f'Eta0 {eta0}; Train score {train_score}; Test score {test_score}')
+    elif args.test_k_fold:
+        x, y, x_transformer = load_data(os.path.join(parent, 'data', args.training_data))
+        ks = [3, 5, 7, 10]
+        for k in ks:
+            logreg = make_sgd_classifier()
+            results = cross_validate(logreg, x, y.argmax(axis=1), cv=k, n_jobs=-1, return_train_score=True)
+            train_score = numpy.mean(results['train_score'])
+            test_score = numpy.mean(results['test_score'])
+            print(f'K {k}; Train score {train_score}; Test score {test_score}')
     else:
         train_x, train_y_non_one_hot, validation_x, validation_y, x_transformer = load_data_and_split(
             os.path.join(parent, 'data', args.training_data), k=k)
@@ -98,5 +107,7 @@ if __name__ == "__main__":
     parser.add_argument('--confidence', action='store_true', help='calculate confidence')
     parser.add_argument('--test_learning_rate', action='store_true',
                         help='train the model with different learning rates')
+    parser.add_argument('--test_k_fold', action='store_true',
+                        help='Train with Stratified K-fold cross-validation with different ks')
     args = parser.parse_args(sys.argv[1:])
     main(args)
