@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 
 
@@ -58,7 +59,7 @@ def load_prediction_data(file_path, device_id, transformer):
     return transformer.transform(x), y, timestamps
 
 
-def load_data_and_split(file_path, normalize=True, drop_device=True):
+def load_data_and_split(file_path, normalize=True, drop_device=True, k=5):
     if file_path.endswith('pkl'):
         data = pd.read_pickle(file_path)
     else:
@@ -70,35 +71,38 @@ def load_data_and_split(file_path, normalize=True, drop_device=True):
     print("Columns:\n {}".format(data.columns))
     print("Data shape: {}\n".format(data.shape))
 
-    train_val_split = '2018-09-11 10:00'
-    val_test_split = '2018-09-12 12:00'
+    n = data.shape[0]
 
-    train_x = data[:train_val_split].iloc[:, 0:-1].values.astype(np.float32)
-    train_y = data[:train_val_split].iloc[:, -1:].values.astype(np.int32)
+    percentage = (k-1) / k
 
-    validation_x = data[train_val_split:val_test_split].iloc[:, 0:-1].values.astype(np.float32)
-    validation_y = data[train_val_split:val_test_split].iloc[:, -1:].values.astype(np.int32)
+    split = int(round(n*percentage))
 
-    test_x = data[val_test_split:].iloc[:, 0:-1].values.astype(np.float32)
-    test_y = data[val_test_split:].iloc[:, -1:].values.astype(np.int32)
+    train_x = data[:split].iloc[:, 0:-1].values.astype(np.float32)
+    train_y = data[:split].iloc[:, -1:].values.astype(np.int32)
+
+    validation_x = data[split:].iloc[:, 0:-1].values.astype(np.float32)
+    validation_y = data[split:].iloc[:, -1:].values.astype(np.int32)
 
     transformer = StandardScaler()
     if normalize:
         train_x = transformer.fit_transform(train_x)
         validation_x = transformer.transform(validation_x)
-        test_x = transformer.transform(test_x)
 
     print("Train shape: {}".format(train_x.shape))
     print("Validation shape: {}".format(validation_x.shape))
-    print("Test shape: {}".format(test_x.shape))
 
-    return train_x, train_y, validation_x, one_hot(validation_y), test_x, one_hot(test_y), transformer
+    return train_x, train_y, validation_x, one_hot(validation_y), transformer
 
 
 def one_hot(y):
     num_classes = np.unique(y).shape[0]
 
     return np.squeeze(np.eye(num_classes)[y.reshape(-1).astype(int)]).astype(np.int32)
+
+
+def make_sgd_classifier(eta0=0.00003):
+    return SGDClassifier(loss='log', shuffle=True, max_iter=100, penalty=None, class_weight='balanced', eta0=eta0,
+                         learning_rate='adaptive')
 
 
 if __name__ == "__main__":
