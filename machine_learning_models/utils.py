@@ -61,13 +61,13 @@ def load_prediction_data(file_path, device_id, transformer):
     return transformer.transform(x), y, timestamps
 
 
-def get_example_generator(file_path, **kwargs):
+def get_example_generator(file_path, repeat=True, clip=None,
+                          filter_staff=True):
     """
-    Returns three generators;
+    Returns three generators:
     train_gen contains the first 5 days
     val_gen   contains the second to last day
     test_gen  contains the last day
-    kwargs    are passed on to load_data_and_split
     """
     validation_start = '2018-09-11 10:00'
     test_start = '2018-09-12 12:00'
@@ -99,19 +99,25 @@ def get_example_generator(file_path, **kwargs):
     transformer = StandardScaler().fit(fit_data)
 
     def get_generator(df):
-        groups = df.groupby('Device')
-        for device, group in groups:
-            person = group.drop('Device', axis=1).sort_index()  # ensure the observations are ordered
-            labels = person[area_names]
-            # labels = labels.values # for production
-            readings = person.drop(area_names, axis=1)
-            # readings = transformer.transform(readings) # for production
-            yield readings, labels#, device
+        while True:
+            groups = df.groupby('Device')
+            for device, group in groups:
+                person = group.drop(
+                    'Device',
+                    axis=1).sort_index()  # ensure the observations are ordered
+                labels = person[area_names]
+                # labels = labels.values # for production
+                readings = person.drop(area_names, axis=1)
+                # readings = transformer.transform(readings) # for production
+                if clip is not None:
+                    labels = labels[:clip]
+                    readings = readings[:clip]
+                yield readings, labels  # , device
+            if not repeat:
+                break
 
-    return get_generator(train_df), \
-        get_generator(validation_df), \
-        get_generator(test_df), \
-        transformer
+    return get_generator(train_df), get_generator(
+        validation_df), get_generator(test_df), transformer
 
     # return train_x, train_y, validation_x, validation_y, test_x, test_y
 
