@@ -1,7 +1,8 @@
 # from keras.layers import *
-from keras.layers import SimpleRNN, Dense, Activation, Flatten
+from keras.layers import SimpleRNN, Dense, Activation, Flatten, Embedding, Masking
 from keras.models import Sequential
 from keras.optimizers import Adam
+import keras
 import utils
 import numpy as np
 
@@ -9,10 +10,10 @@ import numpy as np
 def create_model(hidden_units, n_features, n_classes):
 
     model = Sequential()
+    model.add(Masking(mask_value=0., input_shape=(20, n_features)))
     model.add(
         SimpleRNN(
             hidden_units,
-            input_shape=(None, n_features),
             return_sequences=True,
             activation='tanh',
             name="simpleRNN"))
@@ -22,20 +23,18 @@ def create_model(hidden_units, n_features, n_classes):
     return model
 
 
-def run(x, y, xval, yval, hidden_units, class_weights, n_features, n_classes, epochs,
+def run(x, y, xval, yval, hidden_units, n_features, n_classes, epochs,
         batch_size, learning_rate):
 
     model = create_model(hidden_units, n_features, n_classes)
     model.compile(
-        optimizer=Adam(learning_rate),
+        optimizer=keras.optimizers.Adam(learning_rate),
         loss="categorical_crossentropy",
-        sample_weight_mode="temporal",
         metrics=['accuracy'])
 
     history = model.fit(
         x,
         y,
-        sample_weight=class_weights,
         epochs=epochs,
         batch_size=batch_size,
         validation_data=(xval, yval))
@@ -71,9 +70,6 @@ if __name__ == "__main__":
     print("yes")
 
     clip = 20
-    class_weights = np.ones((clip, 5))
-    class_weights[-1, :] = 0
-    print(class_weights)
 
     train, val, test, _ = utils.get_example_generator(
         "../data/trimmed-aggregated-training-data.csv",
@@ -89,8 +85,7 @@ if __name__ == "__main__":
         "n_classes": train_y[0].shape[1],
         "epochs": 100,
         "batch_size": 256,
-        "learning_rate": 0.001,
-        "class_weights": class_weights
+        "learning_rate": 0.001
     }
 
     trained_model, history = run(train_x, train_y, val_x, val_y, **kwargs)
