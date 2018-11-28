@@ -1,5 +1,5 @@
 # from keras.layers import *
-from keras.layers import SimpleRNN, Dense, Activation, Flatten, Embedding, Masking
+from keras.layers import SimpleRNN, Dense, Activation, Flatten, Embedding, Masking, GRU
 from keras.models import Sequential
 from keras.optimizers import Adam
 import keras
@@ -12,11 +12,11 @@ def create_model(hidden_units, n_features, n_classes):
     model = Sequential()
     model.add(Masking(mask_value=0., input_shape=(20, n_features)))
     model.add(
-        SimpleRNN(
-            hidden_units,
-            return_sequences=True,
-            activation='tanh',
-            name="simpleRNN"))
+        SimpleRNN(hidden_units,
+                  return_sequences=True,
+                  dropout=0.2,
+                  activation='tanh',
+                  name="RNN1"))
     model.add(Dense(n_classes, name="denseOne"))
     model.add(Activation('softmax', name="softmaxOutput"))
 
@@ -53,11 +53,11 @@ def unpack_generator(gen, clip):
         readings = np.concatenate((np.asarray(readings), zeros), axis=0)
 
         # Add a column of 0's as dummy labels
-        labels = np.concatenate((np.asarray(labels), np.zeros((labels.shape[0], 1))), axis=1)
+        #labels = np.concatenate((np.asarray(labels), np.zeros((labels.shape[0], 1))), axis=1)
 
         # Append the labels with dummies
         dummyLabels = np.zeros((padding, labels.shape[1]))
-        dummyLabels[:, -1] = 1
+        #dummyLabels[:, -1] = 1
         labels = np.concatenate((labels, dummyLabels), axis=0)
 
         x += [readings]
@@ -80,15 +80,17 @@ if __name__ == "__main__":
     val_x, val_y = unpack_generator(val, clip)
     test_x, test_y = unpack_generator(test, clip)
     kwargs = {
-        "hidden_units": 50,
+        "hidden_units": 100,
         "n_features": train_x[0].shape[1],
         "n_classes": train_y[0].shape[1],
-        "epochs": 100,
+        "epochs": 10,
         "batch_size": 256,
         "learning_rate": 0.001
     }
 
+    print(kwargs)
+
     trained_model, history = run(train_x, train_y, val_x, val_y, **kwargs)
     loss, accuracy = trained_model.evaluate(test_x, test_y, verbose=0)
-    print("Validation loss:     {:.2f}".format(loss))
-    print("Validation accuracy: {:.2f}%".format(float(accuracy) * 100))
+    print("Test loss:     {:.2f}".format(loss))
+    print("Test accuracy: {:.2f}%".format(float(accuracy) * 100))
