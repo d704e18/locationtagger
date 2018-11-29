@@ -26,6 +26,9 @@ class RNNClass:
 
         self.save_path = save_path
 
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+
     def set_dataset(self, data_tuple):
         self.X_train, self.Y_train, self.X_val, self.Y_val = data_tuple
 
