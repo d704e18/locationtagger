@@ -1,7 +1,6 @@
 # from keras.layers import *
 from keras.layers import SimpleRNN, Dense, Activation, Flatten, Embedding, Masking, GRU
 from keras.models import Sequential
-from keras.optimizers import Adam
 import keras
 import utils
 import numpy as np
@@ -80,10 +79,10 @@ if __name__ == "__main__":
     val_x, val_y = unpack_generator(val, clip)
     test_x, test_y = unpack_generator(test, clip)
     kwargs = {
-        "hidden_units": 100,
+        "hidden_units": 500,
         "n_features": train_x[0].shape[1],
         "n_classes": train_y[0].shape[1],
-        "epochs": 10,
+        "epochs": 15,
         "batch_size": 256,
         "learning_rate": 0.001
     }
