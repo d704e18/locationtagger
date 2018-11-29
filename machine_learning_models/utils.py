@@ -61,6 +61,36 @@ def load_prediction_data(file_path, device_id, transformer):
     return transformer.transform(x), y, timestamps
 
 
+def add_timedelta(df):
+    """
+    Adds a one-hot encoding of the relative time difference between
+    observations. Assumes the df is indexed on DateTime, and the index is
+    ordered.
+
+    """
+    tiers = [0, 30, 120, 300, 600, 1200, 1800]
+    # The time delta for the first value should be zero
+    time_deltas = [0]
+    previous_index = df.index[0]
+    for index in df.index[1:]:
+        time_delta = index - previous_index
+        tier = 0
+        for v in tiers:
+            if time_delta.seconds < v:
+                break
+            tier += 1
+        previous_index = index
+        time_deltas += [tier]
+
+    new_features = one_hot(np.asarray(time_deltas), num_classes=len(tiers) + 1)
+    new_columns = ["Within {} seconds".format(v) for v in tiers]
+    new_columns += ["More than {} seconds".format(tiers[-1])]
+    feature_df = pd.DataFrame(
+        data=new_features, columns=new_columns, index=df.index)
+    df = pd.concat([df, feature_df], axis=1)
+
+    return df
+
 def scale_df(df, drop_columns, end1, start2):
     scalable_df = df.drop(drop_columns, axis=1)
     transformer = StandardScaler().fit(scalable_df[:end1].append(
@@ -110,7 +140,7 @@ def get_example_generator(file_path, repeat=True, clip=None):
     # Drop the columns that should not be scaled
     unscalable_columns = ['Device'] + area_names
     df, transformer = scale_df(df, unscalable_columns, validation_start,
-                           validation_end)
+                               validation_end)
     df = df.sort_index()
 
     # Train on everything outside of the validation interval
@@ -123,13 +153,15 @@ def get_example_generator(file_path, repeat=True, clip=None):
     def get_generator(df):
         groups = df.groupby('Device')
         for device, group in groups:
+            if len(group) < 3:
+                continue
+            if clip is not None:
+                group = group[:clip]
             person = group.drop('Device', axis=1)
             labels = person[area_names]
             labels = labels.values  # for production
             readings = person.drop(area_names, axis=1)
-            if clip is not None:
-                labels = labels[:clip]
-                readings = readings[:clip]
+            readings = add_timedelta(readings)
             yield readings, labels  # , device
 
     return get_generator(train_df), get_generator(
@@ -179,10 +211,11 @@ def load_data_and_split(file_path, normalize=True, drop_device=True):
         validation_y), test_x, one_hot(test_y), transformer
 
 
-def one_hot(y):
+def one_hot(y, num_classes=None):
     if type(y) is pd.Series:
         y = y.values.reshape(-1, 1)
-    num_classes = np.unique(y).shape[0]
+    if num_classes is None:
+        num_classes = np.unique(y).shape[0]
 
     return np.squeeze(np.eye(num_classes)[y.reshape(-1).astype(int)]).astype(
         np.int32)
