@@ -61,14 +61,15 @@ def load_prediction_data(file_path, device_id, transformer):
     return transformer.transform(x), y, timestamps
 
 
-def add_timedelta(df):
+def add_timedelta(df, tiers=None):
     """
     Adds a one-hot encoding of the relative time difference between
     observations. Assumes the df is indexed on DateTime, and the index is
     ordered.
 
     """
-    tiers = [0, 30, 120, 300, 600]  #, 1200, 1800]
+    if tiers is None:
+        tiers = [0, 30, 120, 300, 600]  #, 1200, 1800]
     # The time delta for the first value should be zero
     time_deltas = [0]
     previous_index = df.index[0]
@@ -195,8 +196,9 @@ def get_example_generator(file_path, clip=20, pad=True):
     train_df = df[:validation_start].append(df[validation_end:])
     validation_df = df[validation_start:validation_end]
     # Split validation into test and validation
-    test_df = validation_df.iloc[validation_df.shape[0] // 2:]
-    validation_df = validation_df.iloc[:validation_df.shape[0] // 2]
+    test_start = validation_df.shape[0] // 2
+    test_df = validation_df.iloc[test_start:]
+    validation_df = validation_df.iloc[:test_start]
 
     def get_generator(df):
         groups = df.groupby('Device')
