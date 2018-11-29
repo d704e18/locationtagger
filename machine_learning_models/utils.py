@@ -107,7 +107,7 @@ def add_time_of_day(df, chunkSize=3):
     feature_df = pd.DataFrame(
         data=new_features,
         columns=[
-            "Before {}:00".format('0' + str(h) if h < 10 else h)
+            "About {}:00".format('0' + str(h) if h < 10 else h)
             for h in columns
         ],
         index=df.index)
