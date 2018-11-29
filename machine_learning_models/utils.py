@@ -68,7 +68,7 @@ def add_timedelta(df):
     ordered.
 
     """
-    tiers = [0, 30, 120, 300, 600, 1200, 1800]
+    tiers = [0, 30, 120, 300, 600]  #, 1200, 1800]
     # The time delta for the first value should be zero
     time_deltas = [0]
     previous_index = df.index[0]
@@ -90,6 +90,31 @@ def add_timedelta(df):
     df = pd.concat([df, feature_df], axis=1)
 
     return df
+
+
+def add_time_of_day(df, chunkSize=3):
+    """
+    Adds a one-hot encoding of the time of day of each observation.
+    Assumes the df is indexed on DateTime
+    chunkSize: Specifies how many hours to consolidate.
+    e.g. chunkSize=3 means that 00:00 -> 02:59 is consolidated
+                                03:00 -> 05:59 is consolidated
+    """
+    chunkSize = int(chunkSize)
+    hours = [v.hour // chunkSize for v in df.index]
+    columns = np.sort(np.unique(hours)) * chunkSize
+    new_features = one_hot(np.asarray(hours))
+    feature_df = pd.DataFrame(
+        data=new_features,
+        columns=[
+            "Before {}:00".format('0' + str(h) if h < 10 else h)
+            for h in columns
+        ],
+        index=df.index)
+    df = pd.concat([df, feature_df], axis=1)
+
+    return df
+
 
 def scale_df(df, drop_columns, end1, start2):
     scalable_df = df.drop(drop_columns, axis=1)
@@ -142,6 +167,7 @@ def get_example_generator(file_path, repeat=True, clip=None):
     df, transformer = scale_df(df, unscalable_columns, validation_start,
                                validation_end)
     df = df.sort_index()
+    df = add_time_of_day(df, chunkSize=1)
 
     # Train on everything outside of the validation interval
     train_df = df[:validation_start].append(df[validation_end:])
