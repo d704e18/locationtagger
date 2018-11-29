@@ -116,6 +116,17 @@ def add_time_of_day(df, chunkSize=3):
     return df
 
 
+def pad_data(readings, labels, clip):
+    # Compute the number of rows of padding to add
+    padding = clip - len(readings)
+    zeros = np.zeros((padding, readings.shape[1]))
+    readings = np.concatenate((np.asarray(readings), zeros), axis=0)
+    dummyLabels = np.zeros((padding, labels.shape[1]))
+    labels = np.concatenate((labels, dummyLabels), axis=0)
+
+    return readings, labels
+
+
 def scale_df(df, drop_columns, end1, start2):
     scalable_df = df.drop(drop_columns, axis=1)
     transformer = StandardScaler().fit(scalable_df[:end1].append(
@@ -131,18 +142,7 @@ def scale_df(df, drop_columns, end1, start2):
     return scalable_df, transformer
 
 
-def get_example_generator(file_path, repeat=True, clip=None):
-    """
-    Returns three generators:
-    train_gen contains the first 5 days
-    val_gen   contains the second to last day
-    test_gen  contains the last day
-    """
-    # validation_start = '2018-09-11 10:00'
-    # test_start = '2018-09-12 12:00'
-    validation_start = '2018-09-09 18:00'
-    validation_end = '2018-09-10 18:00'
-
+def load_data_cool(file_path):
     if file_path.endswith('.csv'):
         df = pd.read_csv(
             file_path, dayfirst=False, parse_dates=True, index_col=0)
@@ -151,6 +151,11 @@ def get_example_generator(file_path, repeat=True, clip=None):
     else:
         raise ValueError("Unknown filetype", file_path)
 
+    df = df.sort_index()
+    return df
+
+
+def one_hot_areas(df):
     areas = df.iloc[:, -1]
     hot_areas = one_hot(areas)
     m, n = hot_areas.shape
@@ -162,11 +167,28 @@ def get_example_generator(file_path, repeat=True, clip=None):
 
     df = df.drop('areas', axis=1)
 
+    return df, area_names
+
+
+def get_example_generator(file_path, clip=20, pad=True):
+    """
+    Returns three generators, and a transformer:
+    train_gen:   contains all the data not used for testing
+    val_gen:     the first half of the validation data
+    test_gen:    the second half of the validation data
+    transformer: the transformer that was used to scale the data
+
+    """
+    validation_start = '2018-09-09 18:00'
+    validation_end = '2018-09-10 18:00'
+
+    df = load_data_cool(file_path)
+    df, area_names = one_hot_areas(df)
+
     # Drop the columns that should not be scaled
     unscalable_columns = ['Device'] + area_names
     df, transformer = scale_df(df, unscalable_columns, validation_start,
                                validation_end)
-    df = df.sort_index()
     df = add_time_of_day(df, chunkSize=1)
 
     # Train on everything outside of the validation interval
@@ -179,21 +201,35 @@ def get_example_generator(file_path, repeat=True, clip=None):
     def get_generator(df):
         groups = df.groupby('Device')
         for device, group in groups:
+            # The sequence can cause errors if it is this small, and it is
+            # useless anyways.
             if len(group) < 3:
                 continue
             if clip is not None:
                 group = group[:clip]
             person = group.drop('Device', axis=1)
             labels = person[area_names]
-            labels = labels.values  # for production
             readings = person.drop(area_names, axis=1)
             readings = add_timedelta(readings)
+
+            readings = np.asarray(readings)
+            labels = np.asarray(labels)
+            if pad and clip is not None:
+                readings, labels = pad_data(readings, labels, clip)
+
             yield readings, labels  # , device
 
     return get_generator(train_df), get_generator(
         validation_df), get_generator(test_df), transformer
 
-    # return train_x, train_y, validation_x, validation_y, test_x, test_y
+
+def get_rnn_data(file_path, clip=20, pad=True):
+    def unpack(gen):
+        x, y = zip(*list(gen))
+        return np.asarray(x), np.asarray(y)
+
+    train, val, test, t = get_example_generator(file_path, clip=clip, pad=pad)
+    return unpack(train), unpack(val), unpack(test), t
 
 
 def load_data_and_split(file_path, normalize=True, drop_device=True):
@@ -249,26 +285,12 @@ def one_hot(y, num_classes=None):
 
 if __name__ == "__main__":
 
-    path = os.getcwd()
-    parent = '/'.join(path.split('/')[:-1])
-    data_path = parent + "/data/trimmed-aggregated-training-data.csv"
+    data_path = os.path.dirname(os.path.abspath(
+        __file__)) + "/../data/trimmed-aggregated-training-data.csv"
 
     # train_x, train_y, validation_x, validation_y, test_x, test_y = load_data(
     #     parent + "/data/whole_week.pkl")
 
     # print(train_x.dtype)
     # print(train_y.dtype)
-    g1, g2, g3, t = get_example_generator(data_path)
-
-    for obs, label in g1:
-        pass
-    for obs, label in g2:
-        pass
-    for obs, label in g3:
-        pass
-        # print(obs)
-        # input()
-        # print(label)
-        # input()
-        # print(device)
-        # input()
+    train, val, test, t = get_example_generator(data_path)
