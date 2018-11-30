@@ -226,12 +226,12 @@ def get_example_generator(file_path, clip=20, pad=True):
 
 
 def get_rnn_data(file_path, clip=20, pad=True):
-    def unpack(gen):
+    def unzip(gen):
         x, y = zip(*list(gen))
         return np.asarray(x), np.asarray(y)
 
     train, val, test, t = get_example_generator(file_path, clip=clip, pad=pad)
-    return unpack(train), unpack(val), unpack(test), t
+    return unzip(train), unzip(val), unzip(test), t
 
 
 def load_data_and_split(file_path, normalize=True, drop_device=True):
