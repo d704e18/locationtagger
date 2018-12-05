@@ -171,15 +171,27 @@ def one_hot_areas(df):
     return df, area_names
 
 
-def get_example_generator(file_path, clip=20, pad=True):
+def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
+        time_differences=[30, 60, 120, 180, 240, 300, 600, 900, 1200]):
     """
+    file_path:        path to input data
+    clip:             accept at most `clip` inputs from each passenger
+    pad:              if True, pad the data with 0's to match sequence sizes
+    time_resolution:  The resolution of the onehot encoding of time in the data.
+                        Will add 24 // n columns to the data.
+    time_differences: The time intervals used in the encoding of the relative
+                        time difference between observations within a sequence.
+                        Will add |n|+1 columns to the data.
+
     Returns three generators, and a transformer:
-    train_gen:   contains all the data not used for testing
-    val_gen:     the first half of the validation data
-    test_gen:    the second half of the validation data
-    transformer: the transformer that was used to scale the data
+    train_gen:        contains all the data not used for testing
+    val_gen:          the first half of the validation data
+    test_gen:         the second half of the validation data
+    transformer:      the transformer that was used to scale the data
 
     """
+    print(time_resolution)
+    print(time_differences)
     validation_start = '2018-09-09 18:00'
     validation_end = '2018-09-10 18:00'
 
@@ -225,12 +237,12 @@ def get_example_generator(file_path, clip=20, pad=True):
         validation_df), get_generator(test_df), transformer
 
 
-def get_rnn_data(file_path, clip=20, pad=True):
+def get_rnn_data(file_path, **kwargs):
     def unzip(gen):
         x, y = zip(*list(gen))
         return np.asarray(x), np.asarray(y)
 
-    train, val, test, t = get_example_generator(file_path, clip=clip, pad=pad)
+    train, val, test, t = get_example_generator(file_path, **kwargs)
     return unzip(train), unzip(val), unzip(test), t
 
 
@@ -295,4 +307,9 @@ if __name__ == "__main__":
 
     # print(train_x.dtype)
     # print(train_y.dtype)
-    train, val, test, t = get_example_generator(data_path)
+    # train, val, test, t = get_example_generator(data_path)
+    # get_example_generator(data_path, clip=21, pad=True, time_resolution=2,
+    #         time_differences=[10, 20, 30])
+
+    get_rnn_data(data_path, clip=21, pad=True, time_resolution=2, time_differences=[10, 20, 30])
+
