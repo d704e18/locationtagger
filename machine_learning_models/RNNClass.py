@@ -37,7 +37,7 @@ class RNNClass:
     def set_callbacks(self, callbacks):
         self.callbacks = callbacks
 
-    def run(self, name, hidden_units, n_layers, dropout, learning_rate, batch_size=256, epochs=500):
+    def run(self, name, hidden_units, n_layers, dropout, learning_rate, optimizer="Adam", batch_size=256, epochs=500):
 
         model = self._build_model(hidden_units, n_layers, dropout)
         history = self._train(model, learning_rate, batch_size, epochs)
@@ -49,10 +49,16 @@ class RNNClass:
         return best_model.evaluate(self.X_val, self.Y_val, batch_size=512)[1] * 100
 
 
-    def _train(self, model, learning_rate, batch_size, epochs):
+    def _train(self, model, learning_rate, batch_size, epochs, optimizer):
+        opt_dict = {
+            "rmsprop": keras.optimizers.rmsprop,
+            "adam": keras.optimizers.Adam,
+            "adagrad": keras.optimizers.adagrad
+        }
+
         # Compile model
         model.compile(
-            optimizer=self.optimizer(learning_rate),
+            optimizer=opt_dict[optimizer](learning_rate),
             loss=self.loss,
             metrics=['accuracy'])
 

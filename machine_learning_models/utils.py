@@ -196,6 +196,8 @@ def get_example_generator(
     transformer:      the transformer that was used to scale the data
 
     """
+    #print(time_resolution)
+    #print(time_differences)
     validation_start = '2018-09-09 18:00'
     validation_end = '2018-09-10 18:00'
 

@@ -21,6 +21,12 @@ if __name__ == "__main__":
     data_path = dir_path + "/data/trimmed-aggregated-training-data.csv"
 
     print("Loading and preprocessing data")
+
+    dict_data = {
+        "time_differences": [30, 60, 300, 600, 1800, 3600],
+        "time_resolution": 1
+    }
+
     train, val, test, _ = utils.get_rnn_data(data_path, clip=seq_length, pad=True)
     train_x, train_y = train
     val_x, val_y = val
@@ -36,7 +42,9 @@ if __name__ == "__main__":
         SingleParam("learning_rate", output_type="double", value_range=(0.0001, 0.002), scaling="log"),
         SingleParam("n_layers", output_type="discrete", value_range=[1, 2, 3]),
         SingleParam("hidden_units", output_type="discrete", value_range=[100, 200, 300]),
-        SingleParam("dropout", output_type="double", value_range=(0, 0.7), scaling="incremental", increment=0.1)
+        SingleParam("dropout", output_type="double", value_range=(0, 0.7), scaling="incremental", increment=0.1),
+        SingleParam("batch_size", output_type="discrete", value_range=[64, 128, 256, 512]),
+        SingleParam("optimizer", output_type="discrete", value_range=["rmsprop", "adam", "adagrad"])
     )
 
     p_config = ParamConfig()
