@@ -202,7 +202,7 @@ def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
     unscalable_columns = ['Device'] + area_names
     df, transformer = scale_df(df, unscalable_columns, validation_start,
                                validation_end)
-    df = add_time_of_day(df, chunkSize=1)
+    df = add_time_of_day(df, chunkSize=time_resolution)
 
     # Train on everything outside of the validation interval
     train_df = df[:validation_start].append(df[validation_end:])
@@ -224,7 +224,7 @@ def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
             person = group.drop('Device', axis=1)
             labels = person[area_names]
             readings = person.drop(area_names, axis=1)
-            readings = add_timedelta(readings)
+            readings = add_timedelta(readings, tiers=time_differences)
 
             readings = np.asarray(readings)
             labels = np.asarray(labels)
