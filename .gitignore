@@ -110,3 +110,4 @@ venv.bak/
 
 # ignore result section
 results/
+*.zip

@@ -73,10 +73,16 @@ class RNNClass:
         model.add(Masking(mask_value=0., input_shape=self.input_shape))
 
         for i in range(0, n_layers):
+
+            units = int(hidden_units*(1-(i*0.2)))
+            units = units if units > 0 else 50
+
+            dp = dropout if i < 3 else 0
+
             model.add(
-                SimpleRNN(int(hidden_units*(1-(i*0.2))),
+                SimpleRNN(units,
                           return_sequences=True,
-                          dropout=dropout,
+                          dropout=dp,
                           activation="tanh",
                           name="RNN_{}".format(i)))
 

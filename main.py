@@ -35,8 +35,8 @@ if __name__ == "__main__":
     params_RNN = (
         SingleParam("learning_rate", output_type="double", value_range=(0.0001, 0.002), scaling="log"),
         SingleParam("n_layers", output_type="discrete", value_range=[1, 2, 3]),
-        SingleParam("hidden_units", output_type="discrete", value_range=[50, 100, 200, 300]),
-        SingleParam("dropout", output_type="double", value_range=(0, 0), scaling="incremental", increment=0.1)
+        SingleParam("hidden_units", output_type="discrete", value_range=[100, 200, 300]),
+        SingleParam("dropout", output_type="double", value_range=(0, 0.7), scaling="incremental", increment=0.1)
     )
 
     p_config = ParamConfig()
