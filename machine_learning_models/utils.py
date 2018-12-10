@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+import itertools
 
 
 class AttrDict(dict):
@@ -171,8 +172,13 @@ def one_hot_areas(df):
     return df, area_names
 
 
-def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
-        time_differences=[30, 60, 120, 180, 240, 300, 600, 900, 1200]):
+def get_example_generator(
+        file_path,
+        clip=20,
+        pad=True,
+        time_resolution=1,
+        time_differences=[30, 60, 120, 180, 240, 300, 600, 900, 1200],
+        filter_staff=False):
     """
     file_path:        path to input data
     clip:             accept at most `clip` inputs from each passenger
@@ -190,12 +196,16 @@ def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
     transformer:      the transformer that was used to scale the data
 
     """
-    print(time_resolution)
-    print(time_differences)
     validation_start = '2018-09-09 18:00'
     validation_end = '2018-09-10 18:00'
 
     df = load_data_cool(file_path)
+
+    if filter_staff:
+        staff_dict = get_staff_dict()
+    else:
+        staff_dict = {}
+
     df, area_names = one_hot_areas(df)
 
     # Drop the columns that should not be scaled
@@ -215,6 +225,8 @@ def get_example_generator(file_path, clip=20, pad=True, time_resolution=1,
     def get_generator(df):
         groups = df.groupby('Device')
         for device, group in groups:
+            if device in staff_dict:
+                continue
             # The sequence can cause errors if it is this small, and it is
             # useless anyways.
             if len(group) < 3:
@@ -244,6 +256,27 @@ def get_rnn_data(file_path, **kwargs):
 
     train, val, test, t = get_example_generator(file_path, **kwargs)
     return unzip(train), unzip(val), unzip(test), t
+
+
+def remove_staff(df, key="Device"):
+    staff_dict = get_staff_dict()
+
+
+def get_staff_dict():
+    af1_staff_path = os.path.dirname(
+        os.path.abspath(__file__)) + "/../data/af1-measurements.csv"
+    vf2_staff_path = os.path.dirname(
+        os.path.abspath(__file__)) + "/../data/vf2-measurements.csv"
+    af1 = pd.read_csv(af1_staff_path, index_col=None)
+    vf2 = pd.read_csv(vf2_staff_path, index_col=None)
+    staff_dict = {}
+
+    for i, data in itertools.chain(af1.iterrows(), vf2.iterrows()):
+        ID, _, _, _, _, _, _, kind = data
+        if kind == "staff":
+            staff_dict[ID] = True
+
+    return staff_dict
 
 
 def load_data_and_split(file_path, normalize=True, drop_device=True):
@@ -310,6 +343,25 @@ if __name__ == "__main__":
     # train, val, test, t = get_example_generator(data_path)
     # get_example_generator(data_path, clip=21, pad=True, time_resolution=2,
     #         time_differences=[10, 20, 30])
+    # return unzip(train), unzip(val), unzip(test), t
+    train, _, _, _ = get_rnn_data(
+        data_path,
+        clip=21,
+        pad=True,
+        time_resolution=2,
+        time_differences=[10, 20, 30],
+        filter_staff=False)
 
-    get_rnn_data(data_path, clip=21, pad=True, time_resolution=2, time_differences=[10, 20, 30])
+    print("Not filtered:\m")
+    print(train[0].shape)
 
+    train, _, _, _ = get_rnn_data(
+        data_path,
+        clip=21,
+        pad=True,
+        time_resolution=2,
+        time_differences=[10, 20, 30],
+        filter_staff=True)
+
+    print("\n\n\nFiltered:\n")
+    print(train[0].shape)
