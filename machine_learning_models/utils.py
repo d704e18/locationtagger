@@ -265,13 +265,10 @@ def remove_staff(df, key="Device"):
 def get_staff_dict():
     af1_staff_path = os.path.dirname(
         os.path.abspath(__file__)) + "/../data/af1-measurements.csv"
-    vf2_staff_path = os.path.dirname(
-        os.path.abspath(__file__)) + "/../data/vf2-measurements.csv"
     af1 = pd.read_csv(af1_staff_path, index_col=None)
-    vf2 = pd.read_csv(vf2_staff_path, index_col=None)
     staff_dict = {}
 
-    for i, data in itertools.chain(af1.iterrows(), vf2.iterrows()):
+    for i, data in af1.iterrows():
         ID, _, _, _, _, _, _, kind = data
         if kind == "staff":
             staff_dict[ID] = True
