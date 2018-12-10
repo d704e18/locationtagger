@@ -3,6 +3,8 @@ import keras.layers as kl
 from keras.models import Sequential
 import keras
 import numpy as np
+import os
+from Visualization import save_hist_plot
 
 
 class RNNClass:
@@ -38,7 +40,9 @@ class RNNClass:
     def run(self, name, hidden_units, n_layers, dropout, learning_rate, batch_size=256, epochs=500):
 
         model = self._build_model(hidden_units, n_layers, dropout)
-        self._train(model, learning_rate, batch_size, epochs)
+        history = self._train(model, learning_rate, batch_size, epochs)
+
+        save_hist_plot(history, name, self.save_path)
 
         best_model = keras.models.load_model(self.save_path + "/{}".format(name))
 

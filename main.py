@@ -15,7 +15,7 @@ def stopper(trials):
 if __name__ == "__main__":
     seq_length = 20
 
-    name = "test"
+    name = "Vanilla_RNN_1"
     dir_path = os.path.dirname(os.path.abspath(__file__))
     save_path = dir_path + "/results/" + name
     data_path = dir_path + "/data/trimmed-aggregated-training-data.csv"
@@ -33,10 +33,10 @@ if __name__ == "__main__":
     print("Initializing parameter configuration")
 
     params_RNN = (
-        SingleParam("learning_rate", output_type="double", value_range=(0.0005, 0.001), scaling="log"),
+        SingleParam("learning_rate", output_type="double", value_range=(0.0001, 0.002), scaling="log"),
         SingleParam("n_layers", output_type="discrete", value_range=[1, 2, 3]),
         SingleParam("hidden_units", output_type="discrete", value_range=[50, 100, 200, 300]),
-        SingleParam("dropout", output_type="double", value_range=(0, 0.7), scaling="incremental", increment=0.1)
+        SingleParam("dropout", output_type="double", value_range=(0, 0), scaling="incremental", increment=0.1)
     )
 
     p_config = ParamConfig()
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     SameShit = RNNClass(save_path=save_path, input_shape=(seq_length, features))
 
     # INIT HYPER PARAMETER TUNER
-    DifferentHyperParameter = Tuner("Vanilla_RNN_{}".format(name), sam=SameShit, param_config=params_RNN,
+    DifferentHyperParameter = Tuner(name, sam=SameShit, param_config=params_RNN,
                                     suggestors="RandomSearch", save_path=save_path)
 
 
