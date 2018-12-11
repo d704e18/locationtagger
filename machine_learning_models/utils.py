@@ -74,8 +74,10 @@ def add_timedelta(df, tiers=None):
     # The time delta for the first value should be zero
     time_deltas = [0]
     previous_index = df.index[0]
+    num_seconds = []
     for index in df.index[1:]:
         time_delta = index - previous_index
+        num_seconds += [time_delta]
         tier = 0
         for v in tiers:
             if time_delta.seconds < v:
@@ -84,14 +86,14 @@ def add_timedelta(df, tiers=None):
         previous_index = index
         time_deltas += [tier]
 
-    new_features = one_hot(np.asarray(time_deltas), num_classes=len(tiers) + 1)
-    new_columns = ["Within {} seconds".format(v) for v in tiers]
-    new_columns += ["More than {} seconds".format(tiers[-1])]
-    feature_df = pd.DataFrame(
-        data=new_features, columns=new_columns, index=df.index)
-    df = pd.concat([df, feature_df], axis=1)
+    # new_features = one_hot(np.asarray(time_deltas), num_classes=len(tiers) + 1)
+    # new_columns = ["Within {} seconds".format(v) for v in tiers]
+    # new_columns += ["More than {} seconds".format(tiers[-1])]
+    # feature_df = pd.DataFrame(
+    #     data=new_features, columns=new_columns, index=df.index)
+    # df = pd.concat([df, feature_df], axis=1)
 
-    return df
+    return df, num_seconds
 
 
 def add_time_of_day(df, chunkSize=3):
@@ -229,21 +231,20 @@ def get_example_generator(
                 continue
             # The sequence can cause errors if it is this small, and it is
             # useless anyways.
-            if len(group) < 3:
-                continue
-            if clip is not None:
-                group = group[:clip]
+            # if len(group) < 3:
+            #     continue
+            # if clip is not None:
+            #     group = group[:clip]
             person = group.drop('Device', axis=1)
             labels = person[area_names]
             readings = person.drop(area_names, axis=1)
-            readings = add_timedelta(readings, tiers=time_differences)
+            readings, time_deltas = add_timedelta(
+                readings, tiers=time_differences)
 
             readings = np.asarray(readings)
             labels = np.asarray(labels)
-            if pad and clip is not None:
-                readings, labels = pad_data(readings, labels, clip)
 
-            yield readings, labels  # , device
+            yield readings, time_deltas  # , device
 
     return get_generator(train_df), get_generator(
         validation_df), get_generator(test_df), transformer
@@ -341,7 +342,16 @@ if __name__ == "__main__":
     # get_example_generator(data_path, clip=21, pad=True, time_resolution=2,
     #         time_differences=[10, 20, 30])
     # return unzip(train), unzip(val), unzip(test), t
-    train, _, _, _ = get_rnn_data(
+    def timedelta_to_seconds(dt):
+        # days = dt.days
+        # hours = 24 * days + dt.hours
+        # minutes = 60*hours + dt.minutes
+        # seconds = minutes * 60 + dt.seconds
+        return dt / np.timedelta64(1, 's')
+
+        # return seconds
+
+    train, val, test, _ = get_rnn_data(
         data_path,
         clip=21,
         pad=True,
@@ -350,15 +360,11 @@ if __name__ == "__main__":
         filter_staff=False)
 
     print("Not filtered:\m")
-    print(train[0].shape)
+    print(train[1])
+    second_list = []
+    for t in itertools.chain(train[1], val[1], test[1]):
+        # t is a list of timedeltas
+        t_seconds = map(timedelta_to_seconds, t) # t_seconds is a list of seconds
+        second_list += t_seconds
 
-    train, _, _, _ = get_rnn_data(
-        data_path,
-        clip=21,
-        pad=True,
-        time_resolution=2,
-        time_differences=[10, 20, 30],
-        filter_staff=True)
-
-    print("\n\n\nFiltered:\n")
-    print(train[0].shape)
+    np.savetxt("with-staff-seconds.out", np.asarray(second_list))
