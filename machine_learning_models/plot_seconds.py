@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
-filename = "without-staff-secondsout"
+filename = "with-staff-seconds.out"
 seconds = np.loadtxt(filename)
 print(seconds.shape)
 print(np.mean(seconds))
@@ -23,14 +23,17 @@ for v1, v2 in zip(*v):
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
+# ax.set_title("cumulative observation interval")
+ax.set_ylabel("#cumulative observations")
+ax.set_xlabel("#seconds")
 # line, = ax.plot(x, y)
 y = np.cumsum(y)
 x = np.arange(len(y)) + 1
-for i, v in enumerate(y):
-    print("{}: {}/{}, {}%".format(i, v, y[-1], (v / y[-1]) * 100))
+# for i, v in enumerate(y):
+#     print("{}: {}/{}, {}%".format(i, v, y[-1], (v / y[-1]) * 100))
 a = [pow(10, i) for i in range(10)]
 line, = ax.plot(x, y)
 # ax.set_yscale('log')
-# plt.xlim(0, 500)
+plt.xlim(0, 400)
 # plt.plot(x, y)
-plt.show()
+plt.savefig("with-staff.png", bbox_inches='tight')
