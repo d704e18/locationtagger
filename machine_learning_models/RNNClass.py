@@ -1,4 +1,4 @@
-from keras.layers import SimpleRNN, Dense, Activation, Masking, BatchNormalization
+from keras.layers import SimpleRNN, Dense, Activation, Masking, GRU, Bidirectional
 import keras.layers as kl
 from keras.models import Sequential
 import keras
@@ -37,7 +37,7 @@ class RNNClass:
     def set_callbacks(self, callbacks):
         self.callbacks = callbacks
 
-    def run(self, name, hidden_units, n_layers, dropout, learning_rate, optimizer="Adam", batch_size=256, epochs=500):
+    def run(self, name, hidden_units, n_layers, dropout, learning_rate, optimizer="Adam", batch_size=256, epochs=300):
 
         model = self._build_model(hidden_units, n_layers, dropout)
         history = self._train(model, learning_rate, batch_size, epochs)
@@ -86,11 +86,12 @@ class RNNClass:
             dp = dropout if i < 3 else 0
 
             model.add(
-                SimpleRNN(units,
-                          return_sequences=True,
-                          dropout=dp,
-                          activation="tanh",
-                          name="RNN_{}".format(i)))
+                Bidirectional(
+                    SimpleRNN(units,
+                              return_sequences=True,
+                              dropout=dp,
+                              activation="tanh",
+                              name="GRU_{}".format(i))))
 
         model.add(Dense(self.classes, name="denseOutput"))
         model.add(Activation('softmax', name="softmaxOutput"))
